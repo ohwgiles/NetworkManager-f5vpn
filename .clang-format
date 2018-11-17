@@ -1,0 +1,9 @@
+BasedOnStyle: GNU
+IndentWidth: 4
+TabWidth: 4
+AlignConsecutiveMacros: true
+UseTab: ForIndentation
+BreakBeforeBraces: Mozilla
+BreakBeforeBinaryOperators: NonAssignment
+SpaceAfterCStyleCast: true
+ColumnLimit: 0

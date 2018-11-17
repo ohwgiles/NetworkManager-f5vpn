@@ -1,0 +1,10 @@
+NetworkManager plugin for accessing F5 SSL VPNs
+
+Install prerequisites:
+	apt-get install -y build-essential cmake libnm-dev libxml2-dev libcurl4-openssl-dev libgtk-3-dev ppp-dev
+
+Build and install:
+	cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release
+	make
+	sudo make install
+

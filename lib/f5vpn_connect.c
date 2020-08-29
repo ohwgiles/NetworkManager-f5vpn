@@ -119,6 +119,8 @@ handle_plugin_msg (gint fd, GIOCondition condition, gpointer user)
 static gboolean
 splice_fds (gint fd, GIOCondition condition, gpointer user)
 {
+	if(condition & G_IO_HUP)
+		return debug("hup on %d\n", fd), G_SOURCE_REMOVE;
 	int out_fd = (intptr_t) user;
 	long n = splice (fd, NULL, out_fd, NULL, 4096, SPLICE_F_NONBLOCK);
 	if (n < 0) {

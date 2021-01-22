@@ -117,16 +117,41 @@ handle_plugin_msg (gint fd, GIOCondition condition, gpointer user)
 }
 
 static gboolean
+splice_fds (gint fd, GIOCondition condition, gpointer user);
+
+static gboolean
+splice_write_ready (gint fd, GIOCondition condition, gpointer user)
+{
+	int from_fd = (intptr_t) user;
+	long n = splice (from_fd, NULL, fd, NULL, 4096, SPLICE_F_NONBLOCK | SPLICE_F_MOVE);
+	if (n < 0) {
+		fprintf (stderr, "splice_write_ready: splice() returned %ld: %s\n", n, strerror (errno));
+	}
+
+	// Add the read handler back
+	g_unix_fd_add (from_fd, G_IO_IN, splice_fds, (gpointer) (intptr_t) fd);
+
+	return G_SOURCE_REMOVE;
+}
+
+static gboolean
 splice_fds (gint fd, GIOCondition condition, gpointer user)
 {
-	if(condition & G_IO_HUP)
-		return debug("hup on %d\n", fd), G_SOURCE_REMOVE;
+	if (condition & G_IO_HUP)
+		return debug ("hup on %d\n", fd), G_SOURCE_REMOVE;
+
 	int out_fd = (intptr_t) user;
-	long n = splice (fd, NULL, out_fd, NULL, 4096, SPLICE_F_NONBLOCK);
+	long n = splice (fd, NULL, out_fd, NULL, 4096, SPLICE_F_NONBLOCK | SPLICE_F_MOVE);
 	if (n < 0) {
-		debug ("splice returned %ld: %s\n", n, strerror (errno));
-		return errno == EAGAIN ? (void) sched_yield (), G_SOURCE_CONTINUE : G_SOURCE_REMOVE;
+		if (errno == EAGAIN) {
+			// Wait until the other side is ready to write
+			g_unix_fd_add (out_fd, G_IO_OUT, splice_write_ready, (gpointer) (intptr_t) fd);
+		} else {
+			fprintf (stderr, "splice_fds: splice() returned %ld: %s\n", n, strerror (errno));
+		}
+		return G_SOURCE_REMOVE;
 	}
+
 	return G_SOURCE_CONTINUE;
 }
 

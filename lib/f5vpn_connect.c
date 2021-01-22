@@ -34,9 +34,9 @@ G_DEFINE_QUARK (f5vpn - connect - error - quark, f5vpn_connect_error)
 #define F5VPN_CONNECT_ERROR f5vpn_connect_error_quark ()
 
 #ifdef WITH_DEBUG
-#define debug printf
+#define debug(...) fprintf (stderr, __VA_ARGS__)
 #else
-#define debug(...) (void)0
+#define debug(...) (void) 0
 #endif
 
 #define _STR(x)          #x

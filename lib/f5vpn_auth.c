@@ -365,14 +365,31 @@ on_login_result (CURL *curl, void *user, GError *err)
 	}
 
 	curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &response_code);
-	if (response_code != 302) {
+	/* Some servers respond 200, some 302 */
+	if (!(response_code == 302 || response_code == 200)) {
 		curl_easy_getinfo (curl, CURLINFO_EFFECTIVE_URL, &url);
 		session->err = g_error_new (F5VPN_AUTH_ERROR, 0, "Unexpected HTTP response code %lu received from %s", response_code, url);
 		g_timeout_add (0, report_login_state, session);
 		return;
 	}
 
+	/* If credentials were rejected, the response is still 200 :(
+	 * In this case, try to parse the pretty error message out of the HTML body.
+	 * TODO: proper HTML parsing? */
+	if (strstr (session->http_response_body->str, "class=\"logon_page\"")) {
+		char *p;
+		if ((p = strstr (session->http_response_body->str, "credentials_table_postheader"))) {
+			*strstr (p, "</") = '\0';
+			session->err = g_error_new (F5VPN_AUTH_ERROR, 0, "%s", rindex (p, '>') + 1);
+		} else {
+			session->err = g_error_new (F5VPN_AUTH_ERROR, 0, "Unexpected recurrence of logon page");
+		}
+		g_timeout_add (0, report_login_state, session);
+		return;
+	}
+
 	g_string_truncate (session->http_response_body, 0);
+
 	/* Last request was a POST, so reset the handle back to a GET */
 	curl_easy_setopt (session->curl, CURLOPT_HTTPGET, 1L);
 	/* URL appears to be hard-coded */
@@ -390,6 +407,8 @@ f5vpn_auth_session_post_credentials (F5VpnAuthSession *session, F5VpnLoginDoneCa
 	const char *sep;
 
 	g_assert_true (session->state == F5VPN_AUTH_SESSION_STATE_WAITING_FOR_CREDENTIALS);
+
+	g_string_truncate (session->http_response_body, 0);
 
 	session->done_callback = callback;
 	session->done_userdata = userdata;

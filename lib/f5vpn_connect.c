@@ -117,6 +117,40 @@ handle_plugin_msg (gint fd, GIOCondition condition, gpointer user)
 }
 
 static gboolean
+fallback_read_write_fds (gint fd, GIOCondition condition, gpointer user)
+{
+	if (condition & G_IO_HUP)
+		return debug ("hup on %d\n", fd), G_SOURCE_REMOVE;
+
+	int out_fd = (intptr_t) user;
+	char buf[4096];
+
+	long buflen = read (fd, buf, 4096);
+	if (buflen < 0) {
+		debug ("fallback_read_write_fds read failed: %s\n", strerror (errno));
+		return G_SOURCE_REMOVE;
+	}
+
+	long nwrote = 0;
+	char *bufp = buf;
+	while (nwrote < buflen) {
+		nwrote = write (out_fd, bufp, buflen);
+		if (nwrote < 0) {
+			if (errno == EAGAIN) {
+				sched_yield ();
+				continue;
+			}
+			fprintf (stderr, "fallback_read_write_fds: write() on %d returned %ld: %s\n", out_fd, nwrote, strerror (errno));
+			return G_SOURCE_REMOVE;
+		}
+		buflen -= nwrote;
+		bufp += nwrote;
+	}
+
+	return G_SOURCE_CONTINUE;
+}
+
+static gboolean
 splice_fds (gint fd, GIOCondition condition, gpointer user);
 
 static gboolean
@@ -143,7 +177,11 @@ splice_fds (gint fd, GIOCondition condition, gpointer user)
 	int out_fd = (intptr_t) user;
 	long n = splice (fd, NULL, out_fd, NULL, 4096, SPLICE_F_NONBLOCK | SPLICE_F_MOVE);
 	if (n < 0) {
-		if (errno == EAGAIN) {
+		if (errno == EINVAL) {
+			// Some kernels do not support splice() between a pipe and a tty
+			debug ("splice from %d to %d returned EINVAL, replacing handler with fallback using read/write\n", fd, out_fd);
+			g_unix_fd_add (fd, G_IO_IN, fallback_read_write_fds, (gpointer) (intptr_t) out_fd);
+		} else if (errno == EAGAIN) {
 			// Wait until the other side is ready to write
 			g_unix_fd_add (out_fd, G_IO_OUT, splice_write_ready, (gpointer) (intptr_t) fd);
 		} else {

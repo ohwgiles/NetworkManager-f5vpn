@@ -43,12 +43,6 @@ G_DEFINE_QUARK (f5vpn - connect - error - quark, f5vpn_connect_error)
 #define STR(x)           _STR (x)
 #define PPPD_PLUGIN_PATH STR (PPPD_PLUGIN)
 
-typedef struct
-{
-	struct in_addr addr;
-	unsigned char mask;
-} LanAddr;
-
 struct _F5VpnConnection
 {
 	GlibCurl *glc;
@@ -59,7 +53,6 @@ struct _F5VpnConnection
 	gchar *session_key;
 	int ssl_write_fd;
 	int ppd_fd;
-	/* TODO don't bother going via gslist */
 	GSList *parsed_lans;
 	GSList *parsed_nameservers;
 	pid_t ppd_pid;
@@ -98,17 +91,8 @@ handle_plugin_msg (gint fd, GIOCondition condition, gpointer user)
 	NetworkSettings settings;
 	settings.local_ip = msg.local_addr.s_addr;
 	settings.remote_ip = msg.remote_addr.s_addr;
-	int i = 0;
-	for (GSList *p = vpn->parsed_lans; p && i < 4; p = p->next) {
-		settings.lans[i].addr = ((LanAddr *) p->data)->addr.s_addr;
-		settings.lans[i].mask = ((LanAddr *) p->data)->mask;
-		i++;
-	}
-	settings.n_lans = i;
-	i = 0;
-	for (GSList *p = vpn->parsed_nameservers; p && i < 4; p = p->next)
-		settings.nameservers[i++] = ((struct in_addr *) p->data)->s_addr;
-	settings.n_nameservers = i;
+	settings.lans = vpn->parsed_lans;
+	settings.nameservers = vpn->parsed_nameservers;
 	strcpy (settings.device, msg.ifname);
 
 	tunnel_up (vpn, &settings);

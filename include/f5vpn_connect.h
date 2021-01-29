@@ -22,6 +22,7 @@
 
 #include <glib.h>
 #include <stdint.h>
+#include <netinet/in.h>
 
 struct _F5VpnConnection;
 typedef struct _F5VpnConnection F5VpnConnection;
@@ -34,16 +35,16 @@ enum
 
 typedef struct
 {
+	struct in_addr addr;
+	unsigned char mask;
+} LanAddr;
+
+typedef struct
+{
 	uint32_t local_ip;
 	uint32_t remote_ip;
-	struct
-	{
-		uint32_t addr;
-		uint8_t mask;
-	} lans[4];
-	uint32_t nameservers[4];
-	uint8_t n_lans;
-	uint8_t n_nameservers;
+	GSList *lans; // data is of type LanAddr*
+	GSList *nameservers; // data is of type struct in_addr*
 	char device[16];
 } NetworkSettings;
 

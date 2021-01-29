@@ -57,14 +57,14 @@ static void handle_connection_status(F5VpnConnection *connection, const NetworkS
 	printf("connection up!\n");
 	char str_peer[INET_ADDRSTRLEN] = "";
 	inet_ntop(AF_INET, &settings->remote_ip, str_peer, INET_ADDRSTRLEN);
-	for(int i = 0; i < settings->n_lans; ++i) {
+	for (GSList *p = settings->lans; p; p = p->next) {
 		char str_route[INET_ADDRSTRLEN] = "";
-		inet_ntop(AF_INET, &settings->lans[i].addr, str_route, INET_ADDRSTRLEN);
-		printf("ip route add %s/%d via %s dev %s\n", str_route, settings->lans[i].mask, str_peer, settings->device);
+		inet_ntop(AF_INET, &((LanAddr*) p->data)->addr, str_route, INET_ADDRSTRLEN);
+		printf("ip route add %s/%d via %s dev %s\n", str_route, ((LanAddr*) p->data)->mask, str_peer, settings->device);
 	}
-	for(int i = 0; i < settings->n_nameservers; ++i) {
+	for (GSList *p = settings->nameservers; p; p = p->next) {
 		char str_dns[INET_ADDRSTRLEN] = "";
-		inet_ntop(AF_INET, &settings->nameservers[i], str_dns, INET_ADDRSTRLEN);
+		inet_ntop(AF_INET, p->data, str_dns, INET_ADDRSTRLEN);
 		printf("resolvconf %s\n", str_dns);
 	}
 }

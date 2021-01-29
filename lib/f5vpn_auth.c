@@ -349,6 +349,40 @@ on_resource_list_retrieved (CURL *curl, void *user, GError *err)
 }
 
 static void
+on_epi_skip_response (CURL *curl, void *user, GError *err)
+{
+	F5VpnAuthSession *session;
+	long response_code;
+	gchar *url;
+
+	session = (F5VpnAuthSession *) user;
+	g_assert_true (session->state == F5VPN_AUTH_SESSION_STATE_PERFORMING_LOGIN);
+
+	if (err) {
+		session->err = err;
+		g_timeout_add (0, report_login_state, session);
+		return;
+	}
+
+	curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &response_code);
+	if (response_code != 302) {
+		curl_easy_getinfo (curl, CURLINFO_EFFECTIVE_URL, &url);
+		session->err = g_error_new (F5VPN_AUTH_ERROR, 0, "Unexpected HTTP response code %lu received from %s", response_code, url);
+		g_timeout_add (0, report_login_state, session);
+		return;
+	}
+
+	/* Last request was a POST, so reset the handle back to a GET */
+	curl_easy_setopt (session->curl, CURLOPT_HTTPGET, 1L);
+	/* URL appears to be hard-coded */
+	url = g_strdup_printf ("https://%s/vdesk/resource_list.xml?resourcetype=res", session->host);
+	curl_easy_setopt (session->curl, CURLOPT_URL, url);
+	g_free (url);
+
+	glib_curl_send (session->glc, session->curl, on_resource_list_retrieved, session);
+}
+
+static void
 on_login_result (CURL *curl, void *user, GError *err)
 {
 	F5VpnAuthSession *session;
@@ -390,14 +424,13 @@ on_login_result (CURL *curl, void *user, GError *err)
 
 	g_string_truncate (session->http_response_body, 0);
 
-	/* Last request was a POST, so reset the handle back to a GET */
-	curl_easy_setopt (session->curl, CURLOPT_HTTPGET, 1L);
-	/* URL appears to be hard-coded */
-	url = g_strdup_printf ("https://%s/vdesk/resource_list.xml?resourcetype=res", session->host);
+	/* Some servers have EPI. Don't know how to do that, but apparently you can skip it by sending a special POST */
+	curl_easy_setopt (session->curl, CURLOPT_POSTFIELDS, "no-inspection-host=1");
+	url = g_strdup_printf ("https://%s/my.policy", session->host);
 	curl_easy_setopt (session->curl, CURLOPT_URL, url);
 	g_free (url);
 
-	glib_curl_send (session->glc, session->curl, on_resource_list_retrieved, session);
+	glib_curl_send (session->glc, session->curl, on_epi_skip_response, session);
 }
 
 void

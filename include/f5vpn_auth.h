@@ -54,7 +54,7 @@ typedef struct
 	char *id;
 	char *label;
 	char *description;
-	gboolean autoconnect;
+	gboolean autolaunch;
 } vpn_tunnel;
 
 /**

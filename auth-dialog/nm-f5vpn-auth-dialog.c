@@ -80,6 +80,17 @@ credential_response (F5VpnAuthSession *session, const char *session_key, const v
 	g_hash_table_insert (auth->vpn_secrets, strdup ("f5vpn-session-key"), strdup (session_key));
 
 	g_object_unref (auth->root_dialog);
+
+	/* Maybe launch a tunnel automatically */
+	for (const vpn_tunnel *const *tp = tunnels; *tp; tp++) {
+		if ((*tp)->autolaunch) {
+			g_hash_table_insert (auth->vpn_secrets, strdup ("f5vpn-tunnel-id"), strdup ((*tp)->id));
+			g_application_release (G_APPLICATION (auth));
+			return;
+		}
+	}
+
+	/* Otherwise, show a dialog to select the tunnel */
 	auth->root_dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK, "Select tunnel");
 	GtkWidget *grid = g_object_new (GTK_TYPE_GRID, "column-spacing", 6, "row-spacing", 6, "margin", 6, NULL);
 	auth->tunnel_selector = g_object_new (GTK_TYPE_COMBO_BOX_TEXT, NULL);

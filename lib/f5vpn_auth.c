@@ -191,7 +191,7 @@ on_tunnel_detail_response (CURL *curl, void *user, GError *err)
 	detail->id = res_id;
 	detail->label = res_caption;
 	detail->description = res_description;
-	detail->autoconnect = res_autolaunch;
+	detail->autolaunch = res_autolaunch;
 	session->tunnels_tmp = g_slist_append (session->tunnels_tmp, detail);
 
 	/* henceforth simpler error handling, we won't be here simultaneously */

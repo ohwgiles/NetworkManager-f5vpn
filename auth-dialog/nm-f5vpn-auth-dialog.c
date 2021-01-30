@@ -113,6 +113,14 @@ on_dialog_response (GtkDialog *dialog, gint response_id, gpointer user_data)
 	F5VpnAuthDialog *auth_dialog = F5VPN_AUTH_DIALOG (user_data);
 	GtkWidget *button;
 
+	if (response_id != GTK_RESPONSE_OK) {
+		/* aborted, nm will say no valid secrets */
+		g_application_release (G_APPLICATION (auth_dialog));
+		free (auth_dialog->credential_entries);
+		g_object_unref (auth_dialog->root_dialog);
+		return;
+	}
+
 	for (int i = 0, row = 0; auth_dialog->credential_fields[i]; ++i) {
 		form_field *field = auth_dialog->credential_fields[i];
 		if (field->type == FORM_FIELD_TEXT || field->type == FORM_FIELD_PASSWORD) {
@@ -142,7 +150,7 @@ on_credentials_needed (F5VpnAuthSession *session, form_field *const *fields, voi
 	int fields_count;
 
 	char *title = g_strdup_printf ("Enter credentials for %s", (const char *) g_hash_table_lookup (auth_dialog->vpn_opts, "hostname"));
-	auth_dialog->root_dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK, title);
+	auth_dialog->root_dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK_CANCEL, title);
 	g_free (title);
 
 	/* Could how many fields we have */

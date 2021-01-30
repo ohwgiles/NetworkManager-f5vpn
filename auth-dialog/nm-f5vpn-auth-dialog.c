@@ -249,9 +249,11 @@ main (int argc, char **argv)
 	status = g_application_run (G_APPLICATION (auth_dialog), argc, argv);
 
 	/* Dump all secrets to stdout */
-	g_hash_table_iter_init (&iter, auth_dialog->vpn_secrets);
-	while (g_hash_table_iter_next (&iter, (gpointer *) &key, (gpointer *) &value))
-		printf ("%s\n%s\n", key, value);
+	if (auth_dialog->vpn_secrets) {
+		g_hash_table_iter_init (&iter, auth_dialog->vpn_secrets);
+		while (g_hash_table_iter_next (&iter, (gpointer *) &key, (gpointer *) &value))
+			printf ("%s\n%s\n", key, value);
+	}
 
 	printf ("\n\n");
 	fflush (stdout);

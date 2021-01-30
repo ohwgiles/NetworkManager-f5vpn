@@ -77,6 +77,18 @@ credential_response (F5VpnAuthSession *session, const char *session_key, const v
 		return;
 	}
 
+	/* Save username and password in secrets to allow pre-populating next time */
+	for (int i = 0; auth->credential_fields[i]; ++i) {
+		form_field *field = auth->credential_fields[i];
+		if (!(field && field->name))
+			continue;
+
+		if (strcmp (field->name, "username") == 0)
+			g_hash_table_insert (auth->vpn_secrets, strdup ("f5vpn-username"), strdup (field->value));
+		else if (strcmp (field->name, "password") == 0)
+			g_hash_table_insert (auth->vpn_secrets, strdup ("f5vpn-password"), strdup (field->value));
+	}
+
 	g_hash_table_insert (auth->vpn_secrets, strdup ("f5vpn-session-key"), strdup (session_key));
 
 	g_object_unref (auth->root_dialog);
@@ -161,15 +173,27 @@ on_credentials_needed (F5VpnAuthSession *session, form_field *const *fields, voi
 	auth_dialog->credential_entries = malloc (sizeof (GtkWidget *) * fields_count);
 
 	GtkWidget *grid = g_object_new (GTK_TYPE_GRID, "column-spacing", 6, "row-spacing", 6, "margin", 6, NULL);
+	GtkWidget *maybe_focus = NULL;
 	for (int i = 0, row = 0; fields[i]; ++i) {
 		form_field *field = fields[i];
+		char *prepopulate;
 		if (field->type == FORM_FIELD_TEXT || field->type == FORM_FIELD_PASSWORD) {
 			GtkWidget *label = g_object_new (GTK_TYPE_LABEL, "label", field->label, NULL);
 			auth_dialog->credential_entries[row] = g_object_new (GTK_TYPE_ENTRY, "hexpand", TRUE, "visibility", (field->type != FORM_FIELD_PASSWORD), NULL);
+			if ((strcmp (field->name, "username") == 0 && (prepopulate = g_hash_table_lookup (auth_dialog->vpn_secrets, "f5vpn-username"))) || (strcmp (field->name, "password") == 0 && (prepopulate = g_hash_table_lookup (auth_dialog->vpn_secrets, "f5vpn-password")))) {
+				gtk_entry_set_text (GTK_ENTRY (auth_dialog->credential_entries[row]), prepopulate);
+			} else {
+				maybe_focus = auth_dialog->credential_entries[row];
+			}
+
 			gtk_grid_attach (GTK_GRID (grid), label, 0, row, 1, 1);
 			gtk_grid_attach (GTK_GRID (grid), auth_dialog->credential_entries[i], 1, row, 1, 1);
 			row++;
 		}
+	}
+
+	if (maybe_focus) {
+		gtk_widget_grab_focus (maybe_focus);
 	}
 
 	gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (auth_dialog->root_dialog))), grid);

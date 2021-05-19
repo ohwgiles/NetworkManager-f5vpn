@@ -161,9 +161,7 @@ on_credentials_needed (F5VpnAuthSession *session, form_field *const *fields, voi
 	F5VpnAuthDialog *auth_dialog = F5VPN_AUTH_DIALOG (userdata);
 	int fields_count;
 
-	char *title = g_strdup_printf ("Enter credentials for %s", (const char *) g_hash_table_lookup (auth_dialog->vpn_opts, "hostname"));
-	auth_dialog->root_dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK_CANCEL, title);
-	g_free (title);
+	auth_dialog->root_dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK_CANCEL, "Enter credentials for %s", (const char *) g_hash_table_lookup (auth_dialog->vpn_opts, "hostname"));
 
 	/* Could how many fields we have */
 	for (fields_count = 0; fields[fields_count++];)

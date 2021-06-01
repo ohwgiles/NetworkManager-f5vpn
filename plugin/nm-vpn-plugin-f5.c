@@ -75,11 +75,14 @@ get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
 static void
 f5vpn_editor_plugin_init (F5VpnEditorPlugin *obj)
 {
+	(void) obj;
 }
 
 static guint32
 get_capabilities (NMVpnEditorPlugin *iface)
 {
+	(void) iface;
+
 	return NM_VPN_EDITOR_PLUGIN_CAPABILITY_NONE;
 }
 

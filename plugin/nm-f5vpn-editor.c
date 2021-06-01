@@ -42,6 +42,8 @@ get_widget (NMVpnEditor *iface)
 static gboolean
 update_connection (NMVpnEditor *iface, NMConnection *connection, GError **error)
 {
+	(void) error;
+
 	F5VpnEditor *self = F5VPN_EDITOR (iface);
 	F5VpnEditorPrivate *priv = f5vpn_editor_get_instance_private (self);
 	NMSettingVpn *svpn;
@@ -70,6 +72,7 @@ f5vpn_editor_dispose (GObject *obj)
 static void
 f5vpn_editor_init (F5VpnEditor *plugin)
 {
+	(void) plugin;
 }
 
 static void
@@ -117,6 +120,8 @@ create_root_widget (F5VpnEditor *editor, NMSettingVpn *svpn)
 NMVpnEditor *
 f5vpn_editor_new (NMConnection *connection, GError **error)
 {
+	(void) error;
+
 	F5VpnEditor *editor = g_object_new (F5VPN_TYPE_EDITOR, NULL);
 	F5VpnEditorPrivate *priv = f5vpn_editor_get_instance_private (editor);
 

@@ -169,6 +169,8 @@ on_tunnel_status_change (F5VpnConnection *connection, const NetworkSettings *set
 static gboolean
 nm_f5vpn_connect (NMVpnServicePlugin *plugin, NMConnection *connection, GError **error)
 {
+	(void) error;
+
 	NMSettingVpn *s_vpn;
 
 	s_vpn = nm_connection_get_setting_vpn (connection);
@@ -249,6 +251,8 @@ nm_f5vpn_need_secrets (NMVpnServicePlugin *plugin, NMConnection *connection, con
 static gboolean
 nm_f5vpn_disconnect (NMVpnServicePlugin *plugin, GError **err)
 {
+	(void) err;
+
 	NMF5VpnPlugin *f5vpn_plugin = NM_F5VPN_PLUGIN (plugin);
 	g_assert_nonnull (f5vpn_plugin->f5vpn);
 
@@ -269,6 +273,7 @@ nm_f5vpn_plugin_class_init (NMF5VpnPluginClass *klass)
 void
 nm_f5vpn_plugin_init (NMF5VpnPlugin *plugin)
 {
+	(void) plugin;
 }
 
 int

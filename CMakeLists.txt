@@ -5,7 +5,7 @@ option(WITH_NM_PLUGIN "Compile the NetworkManager plugin" ON)
 option(WITH_CLI_TOOL "Compile the command-line VPN client" OFF)
 option(WITH_DEBUG "Enable debug printfs" OFF)
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra -pedantic -Werror -Wno-error=unused-parameter -Wno-error=pointer-sign")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -D_FORTIFY_SOURCE=2 -Wall -Wextra -Wformat -pedantic -Werror")
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB REQUIRED glib-2.0)

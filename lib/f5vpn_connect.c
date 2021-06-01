@@ -75,6 +75,8 @@ tunnel_up (F5VpnConnection *vpn, const NetworkSettings *settings)
 static gboolean
 handle_plugin_msg (gint fd, GIOCondition condition, gpointer user)
 {
+	(void) condition;
+
 	PppdPluginNotification msg;
 	long n = read (fd, &msg, sizeof (PppdPluginNotification));
 	g_assert_true (n == sizeof (PppdPluginNotification));
@@ -140,6 +142,8 @@ splice_fds (gint fd, GIOCondition condition, gpointer user);
 static gboolean
 splice_write_ready (gint fd, GIOCondition condition, gpointer user)
 {
+	(void) condition;
+
 	int from_fd = (intptr_t) user;
 	long n = splice (from_fd, NULL, fd, NULL, 4096, SPLICE_F_NONBLOCK | SPLICE_F_MOVE);
 	if (n < 0) {
@@ -192,10 +196,16 @@ setnonblocking (int fd)
 static int
 launch_pppd (const char *pppd_ip_spec, int *data_fd, int *plugin_fd, int *log_fd)
 {
+#ifndef WITH_DEBUG
+	(void) log_fd;
+#endif
+
 	int ret, pty_master, pty_slave, pipe_plugin[2];
 	char fd_as_str[3];
 
-	pipe (pipe_plugin);
+	if(pipe (pipe_plugin) == -1)
+		return -1;
+
 	openpty (&pty_master, &pty_slave, NULL, NULL, NULL);
 
 #ifdef WITH_DEBUG
@@ -283,6 +293,8 @@ openssl_exited (GPid pid, gint status, gpointer user_data)
 static gboolean
 on_ssl_established (gint fd, GIOCondition condition, gpointer user)
 {
+	(void) condition;
+
 	char *p, *e;
 	F5VpnConnection *vpn = (F5VpnConnection *) user;
 	// We expect an HTTP response like this:
@@ -354,8 +366,11 @@ launch_ssl_client (const char *endpoint, int fds[2])
 {
 	int ret, to_child[2], from_child[2];
 
-	pipe (to_child);
-	pipe (from_child);
+	if(pipe (to_child) == -1)
+		return -1;
+
+	if(pipe (from_child) == -1)
+		return -1;
 
 	ret = fork ();
 	if (ret == -1)
@@ -476,29 +491,29 @@ handle_connection_parameters (CURL *curl, void *user, GError *err)
 
 	xpathCtx = xmlXPathNewContext (doc);
 
-	xpathObj = xmlXPathEvalExpression ("string(/favorite/object/ur_Z)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/favorite/object/ur_Z)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		ur_Z = g_strdup (xpathObj->stringval);
+		ur_Z = g_strdup ((const gchar*) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
-	xpathObj = xmlXPathEvalExpression ("string(/favorite/object/tunnel_host0)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/favorite/object/tunnel_host0)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		tunnel_host0 = g_strdup (xpathObj->stringval);
+		tunnel_host0 = g_strdup ((const gchar*) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
-	xpathObj = xmlXPathEvalExpression ("string(/favorite/object/tunnel_port0)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/favorite/object/tunnel_port0)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		tunnel_port0 = g_strdup (xpathObj->stringval);
+		tunnel_port0 = g_strdup ((const gchar*) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
-	xpathObj = xmlXPathEvalExpression ("string(/favorite/object/DNS0)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/favorite/object/DNS0)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		DNS0 = g_strdup (xpathObj->stringval);
+		DNS0 = g_strdup ((const gchar*) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
-	xpathObj = xmlXPathEvalExpression ("string(/favorite/object/LAN0)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/favorite/object/LAN0)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		LAN0 = g_strdup (xpathObj->stringval);
+		LAN0 = g_strdup ((const gchar*) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
 	debug ("ur_Z[%s] tunnel_host0[%s] tunnel_port0[%s] DNS0[%s] LAN0[%s]\n", ur_Z, tunnel_host0, tunnel_port0, DNS0, LAN0);
@@ -548,7 +563,13 @@ handle_connection_parameters (CURL *curl, void *user, GError *err)
 
 	debug ("request [%s]\n", vpn_http_get);
 
-	write (ssl_client_fds[1], vpn_http_get, strlen (vpn_http_get));
+	if(write (ssl_client_fds[1], vpn_http_get, strlen (vpn_http_get)) == -1) {
+		g_free (vpn_http_get);
+		vpn->err = g_error_new (F5VPN_CONNECT_ERROR, F5VPN_CONNECT_ERROR_PARSE_FAILED, "Failed to write initial HTTP request: %s", strerror(errno));
+		g_timeout_add (0, callback_to_user, vpn);
+		return;
+	}
+
 	g_free (vpn_http_get);
 	vpn->ssl_write_fd = ssl_client_fds[1];
 	g_unix_fd_add (ssl_client_fds[0], G_IO_IN, on_ssl_established, vpn);

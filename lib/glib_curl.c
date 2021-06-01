@@ -93,6 +93,8 @@ on_socket_event (gint fd, GIOCondition condition, gpointer userdata)
 static int
 on_modify_socket (CURL *e, curl_socket_t s, int what, void *cbp, void *sockp)
 {
+	(void) e;
+
 	intptr_t p = (intptr_t) sockp;
 	GlibCurl *glc = (GlibCurl *) cbp;
 
@@ -133,6 +135,8 @@ on_timer_event (gpointer user_data)
 static int
 timer_callback (CURLM *multi, long timeout_ms, void *userp)
 {
+	(void) multi;
+
 	GlibCurl *glc = (GlibCurl *) userp;
 
 	if (glc->timer_id) {

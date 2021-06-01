@@ -152,22 +152,22 @@ on_tunnel_detail_response (CURL *curl, void *user, GError *err)
 	}
 
 	xpathCtx = xmlXPathNewContext (doc);
-	xpathObj = xmlXPathEvalExpression ("string(/resources/item/id)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/resources/item/id)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		res_id = strdup (xpathObj->stringval);
+		res_id = strdup ((const char*) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
-	xpathObj = xmlXPathEvalExpression ("string(/resources/item/caption)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/resources/item/caption)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		res_caption = strdup (xpathObj->stringval);
+		res_caption = strdup ((const char*) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
-	xpathObj = xmlXPathEvalExpression ("string(/resources/item/description)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/resources/item/description)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		res_description = strdup (xpathObj->stringval);
+		res_description = strdup ((const char*) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
-	xpathObj = xmlXPathEvalExpression ("string(/resources/item/autolaunch)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/resources/item/autolaunch)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
 		res_autolaunch = *xpathObj->stringval == '1';
 	xmlXPathFreeObject (xpathObj);
@@ -278,9 +278,9 @@ on_resource_list_retrieved (CURL *curl, void *user, GError *err)
 
 	xpathCtx = xmlXPathNewContext (doc);
 
-	xpathObj = xmlXPathEvalExpression ("string(/res[@type='resource_list']/opts/opt[@type='available_rq']/@uri)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/res[@type='resource_list']/opts/opt[@type='available_rq']/@uri)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		detail_uri = strdup (xpathObj->stringval);
+		detail_uri = strdup ((const char*) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
 	if (!detail_uri) {
@@ -291,7 +291,7 @@ on_resource_list_retrieved (CURL *curl, void *user, GError *err)
 		return;
 	}
 
-	xpathObj = xmlXPathEvalExpression ("/res[@type='resource_list']/lists/list[@type='network_access']/entry", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "/res[@type='resource_list']/lists/list[@type='network_access']/entry", xpathCtx);
 
 	if (!xpathObj || !xpathObj->nodesetval) {
 		free (detail_uri);
@@ -307,7 +307,7 @@ on_resource_list_retrieved (CURL *curl, void *user, GError *err)
 	for (int i = 0; i < xpathObj->nodesetval->nodeNr; ++i) {
 		xmlNode *node = xpathObj->nodesetval->nodeTab[i];
 		for (xmlAttr *a = node->properties; a; a = a->next) {
-			if (strcmp (a->name, "param") == 0) {
+			if (strcmp ((const char*) a->name, "param") == 0) {
 				TunnelDetailCtx *ctx = calloc (1, sizeof (TunnelDetailCtx));
 
 				ctx->auth_session = session;
@@ -493,26 +493,26 @@ static void
 parse_login_page_cb_start_element (html_parse_ctx *ctx, const xmlChar *name, const xmlChar **atts)
 {
 	if (ctx->in_form) {
-		if (strcmp (name, "label") == 0) {
+		if (strcmp ((const char*) name, "label") == 0) {
 			g_assert_false (ctx->in_label);
 			ctx->in_label = TRUE;
-		} else if (strcmp (name, "input") == 0) {
+		} else if (strcmp ((const char*) name, "input") == 0) {
 			ctx->fields[ctx->field_idx] = calloc (sizeof (form_field), 1);
 			for (const xmlChar **p = atts; p && *p; p++) {
-				if (strcmp (*p, "name") == 0 && p[1]) {
-					ctx->fields[ctx->field_idx]->name = strdup (p[1]);
+				if (strcmp ((const char*) *p, "name") == 0 && p[1]) {
+					ctx->fields[ctx->field_idx]->name = strdup ((const char*) p[1]);
 					p++;
-				} else if (strcmp (*p, "type") == 0 && p[1]) {
+				} else if (strcmp ((const char*) *p, "type") == 0 && p[1]) {
 					ctx->fields[ctx->field_idx]->type =
-					    (strcmp (p[1], "text") == 0)
+					    (strcmp ((const char*) p[1], "text") == 0)
 					        ? FORM_FIELD_TEXT
-					        : (strcmp (p[1], "password") == 0)
+					        : (strcmp ((const char*) p[1], "password") == 0)
 					              ? FORM_FIELD_PASSWORD
-					              : (strcmp (p[1], "hidden") == 0) ? FORM_FIELD_HIDDEN
-					                                               : FORM_FIELD_OTHER;
+					              : (strcmp ((const char*) p[1], "hidden") == 0) ? FORM_FIELD_HIDDEN
+					                                                             : FORM_FIELD_OTHER;
 					p++;
-				} else if (strcmp (*p, "value") == 0 && p[1]) {
-					ctx->fields[ctx->field_idx]->value = strdup (p[1]);
+				} else if (strcmp ((const char*) *p, "value") == 0 && p[1]) {
+					ctx->fields[ctx->field_idx]->value = strdup ((const char*) p[1]);
 					p++;
 				}
 			}
@@ -524,9 +524,9 @@ parse_login_page_cb_start_element (html_parse_ctx *ctx, const xmlChar *name, con
 				    strdup (ctx->fields[ctx->field_idx]->name);
 			}
 		}
-	} else if (strcmp (name, "form") == 0) {
+	} else if (strcmp ((const char*) name, "form") == 0) {
 		for (const xmlChar **p = atts; p && *p; p++) {
-			if (strcmp (*p, "id") == 0 && p[1] && strcmp (p[1], "auth_form") == 0) {
+			if (strcmp ((const char*) p[0], "id") == 0 && p[1] && strcmp ((const char*) p[1], "auth_form") == 0) {
 				ctx->in_form = TRUE;
 				break;
 			}
@@ -538,7 +538,7 @@ static void
 parse_login_page_cb_characters (html_parse_ctx *ctx, const xmlChar *ch, int len)
 {
 	if (ctx->in_label)
-		ctx->last_label = strndup (ch, len);
+		ctx->last_label = strndup ((const char*) ch, len);
 }
 
 static void
@@ -547,12 +547,12 @@ parse_login_page_cb_end_element (html_parse_ctx *ctx, const xmlChar *name)
 	if (!ctx->in_form)
 		return;
 
-	if (strcmp (name, "form") == 0) {
+	if (strcmp ((const char*) name, "form") == 0) {
 		ctx->in_form = FALSE;
-	} else if (strcmp (name, "label") == 0) {
+	} else if (strcmp ((const char*) name, "label") == 0) {
 		g_assert_true (ctx->in_label);
 		ctx->in_label = FALSE;
-	} else if (strcmp (name, "input") == 0) {
+	} else if (strcmp ((const char*) name, "input") == 0) {
 		ctx->field_idx++;
 	}
 }

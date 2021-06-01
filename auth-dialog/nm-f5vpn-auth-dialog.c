@@ -54,6 +54,9 @@ G_DEFINE_TYPE (F5VpnAuthDialog, f5vpn_auth_dialog, GTK_TYPE_APPLICATION)
 static void
 on_tunnel_selected (GtkDialog *dialog, gint response_id, gpointer user_data)
 {
+	(void) dialog;
+	(void) response_id;
+
 	F5VpnAuthDialog *auth = F5VPN_AUTH_DIALOG (user_data);
 	const char *id =
 	    gtk_combo_box_get_active_id (GTK_COMBO_BOX (auth->tunnel_selector));
@@ -67,6 +70,8 @@ on_tunnel_selected (GtkDialog *dialog, gint response_id, gpointer user_data)
 static void
 credential_response (F5VpnAuthSession *session, const char *session_key, const vpn_tunnel *const *tunnels, void *userdata, GError *err)
 {
+	(void) session;
+
 	F5VpnAuthDialog *auth = F5VPN_AUTH_DIALOG (userdata);
 
 	if (err) {
@@ -158,6 +163,9 @@ on_dialog_response (GtkDialog *dialog, gint response_id, gpointer user_data)
 static void
 on_credentials_needed (F5VpnAuthSession *session, form_field *const *fields, void *userdata, GError *err)
 {
+	(void) session;
+	(void) err;
+
 	F5VpnAuthDialog *auth_dialog = F5VPN_AUTH_DIALOG (userdata);
 	int fields_count;
 
@@ -202,6 +210,8 @@ on_credentials_needed (F5VpnAuthSession *session, form_field *const *fields, voi
 static void
 activate (GtkApplication *app, gpointer user_data)
 {
+	(void) user_data;
+
 	F5VpnAuthDialog *auth_dialog = F5VPN_AUTH_DIALOG (app);
 	auth_dialog->session = f5vpn_auth_session_new (g_main_context_default (), g_hash_table_lookup (auth_dialog->vpn_opts, "hostname"));
 
@@ -212,6 +222,9 @@ activate (GtkApplication *app, gpointer user_data)
 static gint
 handle_local_options (GApplication *application, GVariantDict *options, gpointer user_data)
 {
+	(void) options;
+	(void) user_data;
+
 	F5VpnAuthDialog *auth_dialog = F5VPN_AUTH_DIALOG (application);
 
 	if (!auth_dialog->cmdopts.allow_interaction)
@@ -259,7 +272,7 @@ main (int argc, char **argv)
 	F5VpnAuthDialog *auth_dialog;
 	int status;
 	GHashTableIter iter;
-	char *key, *value;
+	char *key, *value, *ev;
 	char input[256];
 
 	auth_dialog = g_object_new (f5vpn_auth_dialog_get_type (), "application-id", "org.freedesktop.NetworkManager.f5vpn-auth-dialog", "flags", G_APPLICATION_NON_UNIQUE, NULL);
@@ -292,8 +305,8 @@ main (int argc, char **argv)
 
 	/* Wait for QUIT from NetworkManager */
 	do
-		fgets (input, 255, stdin);
-	while (strncmp (input, "QUIT", 4) && !errno);
+		ev = fgets (input, 255, stdin);
+	while (strncmp (input, "QUIT", 4) && ev != NULL);
 
 	return status;
 }

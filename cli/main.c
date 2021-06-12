@@ -71,6 +71,8 @@ static void handle_connection_status(F5VpnConnection *connection, const NetworkS
 
 static void on_login_done(F5VpnAuthSession* session, const char* session_key, const vpn_tunnel* const* vpn_ids, void *userdata, GError* err)
 {
+	(void) session;
+
 	F5VpnCli *cli = (F5VpnCli*) userdata;
 	static char buffer[4] = "";
 	int chosen_tunnel = 0;
@@ -99,7 +101,10 @@ static void on_login_done(F5VpnAuthSession* session, const char* session_key, co
 	}
 	do {
 		printf("Select a tunnel: ");
-		fgets(buffer, 3, stdin);
+		if(fgets(buffer, 3, stdin) == NULL) {
+			g_main_loop_quit(cli->main_loop);
+			return;
+		}
 		chosen_tunnel = atoi(buffer);
 	} while(chosen_tunnel < 1 || chosen_tunnel >= n);
 

@@ -210,7 +210,8 @@ launch_pppd (const char *pppd_ip_spec, int *data_fd, int *plugin_fd, int *log_fd
 
 #ifdef WITH_DEBUG
 	int pipe_log[2];
-	pipe (pipe_log);
+	if(pipe (pipe_log) == -1)
+		return -1;
 #endif
 
 	ret = fork ();

@@ -27,7 +27,7 @@ G_DEFINE_QUARK (f5vpn - auth - error - quark, f5vpn_auth_error)
 #define F5VPN_AUTH_ERROR f5vpn_auth_error_quark ()
 
 #ifdef WITH_DEBUG
-#define debug printf
+#define debug(...) fprintf (stderr, __VA_ARGS__)
 #else
 #define debug(...)
 #endif

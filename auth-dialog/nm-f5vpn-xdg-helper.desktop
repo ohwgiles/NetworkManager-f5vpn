@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=F5Vpn Browser Authentication Helper
+Exec=/usr/lib/nm-f5vpn-xdg-helper %u
+NoDisplay=true
+MimeType=x-scheme-handler/f5-vpn;

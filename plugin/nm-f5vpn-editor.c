@@ -23,6 +23,7 @@
 typedef struct
 {
 	GtkWidget *entry_hostname;
+	GtkWidget *browser_switch;
 	GtkWidget *root_widget;
 } F5VpnEditorPrivate;
 
@@ -50,6 +51,8 @@ update_connection (NMVpnEditor *iface, NMConnection *connection, GError **error)
 
 	svpn = nm_connection_get_setting_vpn (connection);
 	g_assert_nonnull (svpn);
+
+	nm_setting_vpn_add_data_item (svpn, "use-browser-auth", gtk_switch_get_state (GTK_SWITCH (priv->browser_switch)) ? "true" : "false");
 
 	const gchar *hostname = gtk_entry_get_text (GTK_ENTRY (priv->entry_hostname));
 	if (!hostname || !*hostname)
@@ -90,7 +93,7 @@ f5vpn_editor_class_init (F5VpnEditorClass *klass)
 }
 
 static void
-host_entry_changed (NMVpnEditor *editor)
+options_changed (NMVpnEditor *editor)
 {
 	g_signal_emit_by_name (editor, "changed", NULL);
 }
@@ -104,15 +107,23 @@ create_root_widget (F5VpnEditor *editor, NMSettingVpn *svpn)
 	if (!hostname)
 		hostname = "";
 
-	GtkWidget *grid = g_object_new (GTK_TYPE_GRID, "column-spacing", 12, "margin", 12, NULL);
-	GtkWidget *host_label = g_object_new (GTK_TYPE_LABEL, "label", "Hostname", NULL);
-	GtkWidget *entry_hostname = g_object_new (GTK_TYPE_ENTRY, "hexpand", TRUE, "text", hostname, NULL);
-	priv->entry_hostname = entry_hostname;
+	const char *browser = nm_setting_vpn_get_data_item (svpn, "use-browser-auth");
 
-	g_signal_connect_swapped (entry_hostname, "changed", G_CALLBACK (host_entry_changed), editor);
+	GtkWidget *grid = g_object_new (GTK_TYPE_GRID, "column-spacing", 12, "margin", 12, "row-spacing", 6, NULL);
+	GtkWidget *host_label = g_object_new (GTK_TYPE_LABEL, "label", "Hostname", "halign", GTK_ALIGN_END, NULL);
+	GtkWidget *entry_hostname = g_object_new (GTK_TYPE_ENTRY, "text", hostname, "hexpand", TRUE, NULL);
+	GtkWidget *browser_label = g_object_new (GTK_TYPE_LABEL, "label", "Use Browser Authentication", "halign", GTK_ALIGN_END, NULL);
+	GtkWidget *browser_switch = g_object_new (GTK_TYPE_SWITCH, "active", browser && strcmp (browser, "true") == 0, "halign", GTK_ALIGN_END, NULL);
+	priv->entry_hostname = entry_hostname;
+	priv->browser_switch = browser_switch;
+
+	g_signal_connect_swapped (entry_hostname, "changed", G_CALLBACK (options_changed), editor);
+	g_signal_connect_swapped (browser_switch, "state-set", G_CALLBACK (options_changed), editor);
 
 	gtk_grid_attach (GTK_GRID (grid), host_label, 0, 0, 1, 1);
 	gtk_grid_attach (GTK_GRID (grid), entry_hostname, 1, 0, 1, 1);
+	gtk_grid_attach (GTK_GRID (grid), browser_label, 0, 1, 1, 1);
+	gtk_grid_attach (GTK_GRID (grid), browser_switch, 1, 1, 1, 1);
 
 	return grid;
 }

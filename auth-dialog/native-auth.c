@@ -22,34 +22,8 @@
 #include <libnm/NetworkManager.h>
 #include <stdio.h>
 
+#include "auth-dialog.h"
 #include "f5vpn_auth.h"
-
-G_DECLARE_FINAL_TYPE (F5VpnAuthDialog, f5vpn_auth_dialog, F5VPN, AUTH_DIALOG, GtkApplication)
-
-struct _F5VpnAuthDialog
-{
-	GtkApplication parent;
-
-	struct
-	{
-		const char *name;
-		const char *uuid;
-		const char *service;
-		gboolean allow_interaction;
-	} cmdopts;
-
-	GHashTable *vpn_opts;
-	GHashTable *vpn_secrets;
-
-	GtkWidget *root_dialog;
-	form_field *const *credential_fields;
-	GtkWidget **credential_entries;
-	GtkWidget *tunnel_selector;
-
-	F5VpnAuthSession *session;
-};
-
-G_DEFINE_TYPE (F5VpnAuthDialog, f5vpn_auth_dialog, GTK_TYPE_APPLICATION)
 
 static void
 on_tunnel_selected (GtkDialog *dialog, gint response_id, gpointer user_data)
@@ -101,6 +75,7 @@ credential_response (F5VpnAuthSession *session, const char *session_key, const v
 	/* Maybe launch a tunnel automatically */
 	for (const vpn_tunnel *const *tp = tunnels; *tp; tp++) {
 		if ((*tp)->autolaunch) {
+
 			g_hash_table_insert (auth->vpn_secrets, strdup ("f5vpn-tunnel-id"), strdup ((*tp)->id));
 			g_application_release (G_APPLICATION (auth));
 			return;
@@ -215,106 +190,9 @@ on_credentials_needed (F5VpnAuthSession *session, form_field *const *fields, voi
 	gtk_widget_show_all (auth_dialog->root_dialog);
 }
 
-static void
-activate (GtkApplication *app, gpointer user_data)
+void
+native_auth_begin (F5VpnAuthDialog *auth_dialog)
 {
-	(void) user_data;
-
-	F5VpnAuthDialog *auth_dialog = F5VPN_AUTH_DIALOG (app);
 	auth_dialog->session = f5vpn_auth_session_new (g_main_context_default (), g_hash_table_lookup (auth_dialog->vpn_opts, "hostname"));
-
-	g_application_hold (G_APPLICATION (app));
 	f5vpn_auth_session_begin (auth_dialog->session, on_credentials_needed, auth_dialog);
-}
-
-static gint
-handle_local_options (GApplication *application, GVariantDict *options, gpointer user_data)
-{
-	(void) options;
-	(void) user_data;
-
-	F5VpnAuthDialog *auth_dialog = F5VPN_AUTH_DIALOG (application);
-
-	if (!auth_dialog->cmdopts.allow_interaction)
-		return EXIT_FAILURE;
-
-	if (!(auth_dialog->cmdopts.name && auth_dialog->cmdopts.uuid && auth_dialog->cmdopts.service)) {
-		fprintf (stderr, "vpn name, uuid and service are required\n");
-		return EXIT_FAILURE;
-	}
-
-	if (nm_vpn_service_plugin_read_vpn_details (STDIN_FILENO, &auth_dialog->vpn_opts, &auth_dialog->vpn_secrets) == FALSE) {
-		fprintf (stderr, "failed to read options and secrets from standard input\n");
-		return EXIT_FAILURE;
-	}
-
-	return -1;
-}
-
-static void
-f5vpn_auth_dialog_finalize (GObject *obj)
-{
-	F5VpnAuthDialog *auth_dialog = F5VPN_AUTH_DIALOG (obj);
-	if (auth_dialog->session)
-		f5vpn_auth_session_free (auth_dialog->session);
-	G_OBJECT_CLASS (f5vpn_auth_dialog_parent_class)->finalize (obj);
-}
-
-static void
-f5vpn_auth_dialog_class_init (F5VpnAuthDialogClass *klass)
-{
-	G_OBJECT_CLASS (klass)->finalize = f5vpn_auth_dialog_finalize;
-}
-
-static void
-f5vpn_auth_dialog_init (F5VpnAuthDialog *auth_dialog)
-{
-	memset (&auth_dialog->cmdopts, 0, sizeof (auth_dialog->cmdopts));
-	auth_dialog->vpn_opts = NULL;
-	auth_dialog->vpn_secrets = NULL;
-}
-
-int
-main (int argc, char **argv)
-{
-	F5VpnAuthDialog *auth_dialog;
-	int status;
-	GHashTableIter iter;
-	char *key, *value, *ev;
-	char input[256];
-
-	auth_dialog = g_object_new (f5vpn_auth_dialog_get_type (), "application-id", "org.freedesktop.NetworkManager.f5vpn-auth-dialog", "flags", G_APPLICATION_NON_UNIQUE, NULL);
-	/* clang-format off */
-	g_application_add_main_option_entries (G_APPLICATION (auth_dialog), (GOptionEntry[]){
-	    { "allow-interaction", 'i', 0, G_OPTION_ARG_NONE, &auth_dialog->cmdopts.allow_interaction, "", NULL },
-	    { "vpn-name", 'n', 0, G_OPTION_ARG_STRING, &auth_dialog->cmdopts.name, "", NULL },
-	    { "vpn-uuid", 'u', 0, G_OPTION_ARG_STRING, &auth_dialog->cmdopts.uuid, "", NULL },
-	    { "vpn-service", 's', 0, G_OPTION_ARG_STRING, &auth_dialog->cmdopts.service, "", NULL },
-	    { NULL }
-	});
-	/* clang-format on */
-
-	g_signal_connect (auth_dialog, "activate", G_CALLBACK (activate), NULL);
-	g_signal_connect (auth_dialog, "handle-local-options", G_CALLBACK (handle_local_options), NULL);
-
-	status = g_application_run (G_APPLICATION (auth_dialog), argc, argv);
-
-	/* Dump all secrets to stdout */
-	if (auth_dialog->vpn_secrets) {
-		g_hash_table_iter_init (&iter, auth_dialog->vpn_secrets);
-		while (g_hash_table_iter_next (&iter, (gpointer *) &key, (gpointer *) &value))
-			printf ("%s\n%s\n", key, value);
-	}
-
-	printf ("\n\n");
-	fflush (stdout);
-
-	g_object_unref (auth_dialog);
-
-	/* Wait for QUIT from NetworkManager */
-	do
-		ev = fgets (input, 255, stdin);
-	while (strncmp (input, "QUIT", 4) && ev != NULL);
-
-	return status;
 }

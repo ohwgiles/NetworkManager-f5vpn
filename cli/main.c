@@ -23,12 +23,14 @@
 #include <unistd.h>
 
 #include "f5vpn_auth.h"
+#include "f5vpn_getsid.h"
 #include "f5vpn_connect.h"
 
 typedef struct {
 	GMainLoop* main_loop;
 	const char* hostname;
 	gboolean do_connect;
+	const char* vpn_z_id;
 } F5VpnCli;
 
 static void handle_connection_status(F5VpnConnection *connection, const NetworkSettings *settings, void *userdata, GError *err)
@@ -164,20 +166,46 @@ static void on_credentials_needed(F5VpnAuthSession* session, form_field *const*f
 	f5vpn_auth_session_post_credentials(session, on_login_done, cli);
 }
 
+static void on_otc_retrieved(F5VpnGetSid *getsid, const char *session_key, void *userdata, GError* err)
+{
+	(void) getsid;
+
+	F5VpnCli *cli = (F5VpnCli*) userdata;
+
+	if(err) {
+		fprintf(stderr, "error: %s\n", err->message);
+		g_error_free(err);
+		g_main_loop_quit(cli->main_loop);
+		return;
+	}
+
+	printf("session key: %s\n", session_key);
+
+	if(cli->do_connect) {
+		f5vpn_connect(g_main_loop_get_context(cli->main_loop), cli->hostname, session_key, cli->vpn_z_id, handle_connection_status, cli);
+	} else {
+		g_main_loop_quit(cli->main_loop);
+	}
+
+}
+
 int main(int argc, char** argv)
 {
 	F5VpnCli cli = {0};
-	gboolean do_auth = FALSE;
-	gchar *session_key = NULL, *vpn_z_id = NULL;
+	gboolean do_auth = FALSE, do_getsid = FALSE;
+	gchar *session_key = NULL, *otc = NULL;
 	GOptionContext *opt_ctx = NULL;
 	F5VpnAuthSession *auth = NULL;
+	F5VpnGetSid *getsid = NULL;
 	
 	GOptionEntry options[] = {
 	    { "auth", 'a', 0, G_OPTION_ARG_NONE, &do_auth, "Authenticate to obtain a session key", NULL },
+	    { "getsid", 'g', 0, G_OPTION_ARG_NONE, &do_getsid, "Exchange a One-Time-Code for a session key", NULL },
 	    { "connect", 'c', 0, G_OPTION_ARG_NONE, &cli.do_connect, "Connect to remote VPN", NULL },
 	    { "session", 's', 0, G_OPTION_ARG_STRING, &session_key, "Provide a session key", NULL },
+	    { "otc", 'o', 0, G_OPTION_ARG_STRING, &otc, "Provide a One-Time-Code", NULL },
 	    { "host", 'h', 0, G_OPTION_ARG_STRING, &cli.hostname, "F5 SSL VPN host", NULL },
-	    { "vpn-z-id", 'z', 0, G_OPTION_ARG_STRING, &vpn_z_id, "VPN id to use", NULL },
+	    { "vpn-z-id", 'z', 0, G_OPTION_ARG_STRING, &cli.vpn_z_id, "VPN id to use", NULL },
 	    { NULL }
 	};
 	
@@ -190,30 +218,48 @@ int main(int argc, char** argv)
 	g_option_context_free (opt_ctx);
 	
 	if (!cli.hostname)
-		return fprintf(stderr, "Hostname must be provided\n"), EXIT_FAILURE;
+		return fprintf(stderr, "hostname must be provided\n"), EXIT_FAILURE;
 	
-	if (cli.do_connect && !do_auth && (!session_key || !vpn_z_id))
-		return fprintf(stderr, "If not authenticating, session key and Z-id must be provided\n"), EXIT_FAILURE;
+	if (do_auth && do_getsid)
+		return fprintf(stderr, "--auth conflicts with --getsid\n"), EXIT_FAILURE;
+
+	if (do_getsid && !otc)
+		return fprintf(stderr, "otc must be provided when exchanging otc for session key\n"), EXIT_FAILURE;
+
+	if (do_getsid && session_key)
+		return fprintf(stderr, "session key should not be provided when exchanging otc for session key\n"), EXIT_FAILURE;
+
+	if (do_getsid && !cli.do_connect && cli.vpn_z_id)
+		return fprintf(stderr, "not connecting: vpn_z_id should not be provided\n"), EXIT_FAILURE;
+
+	if (do_auth && (session_key || otc || cli.vpn_z_id))
+		return fprintf(stderr, "neither session_key, otc nor vpn_z_id should be provided when authenticating\n"), EXIT_FAILURE;
 	
-	if (do_auth && (session_key || vpn_z_id))
-		return fprintf(stderr, "session_key and vpn_z_id should not be provided when authenticating\n"), EXIT_FAILURE;
-	
-	if (!do_auth && !cli.do_connect)
-		return fprintf(stderr, "One of --auth or --connect must be used\n"), EXIT_FAILURE;
+	if (cli.do_connect && !do_auth && (!cli.vpn_z_id || (!session_key && !do_getsid)))
+		return fprintf(stderr, "not authenticating: session key (or otc) and Z-id must be provided\n"), EXIT_FAILURE;
+
+	if (!do_auth && !do_getsid && !cli.do_connect)
+		return fprintf(stderr, "one or more of --auth, --getsid or --connect must be used\n"), EXIT_FAILURE;
 
 	cli.main_loop = g_main_loop_new(NULL, FALSE);
 
 	if (do_auth) {
 		auth = f5vpn_auth_session_new(g_main_loop_get_context(cli.main_loop), cli.hostname);
 		f5vpn_auth_session_begin(auth, on_credentials_needed, &cli);
+	} else if (do_getsid) {
+		getsid = f5vpn_getsid_begin(g_main_loop_get_context(cli.main_loop), cli.hostname, otc, on_otc_retrieved, &cli);
 	} else if(cli.do_connect) {
-		f5vpn_connect(g_main_loop_get_context(cli.main_loop), cli.hostname, session_key, vpn_z_id, handle_connection_status, &cli);
+		f5vpn_connect(g_main_loop_get_context(cli.main_loop), cli.hostname, session_key, cli.vpn_z_id, handle_connection_status, &cli);
 	}
 
 	g_main_loop_run(cli.main_loop);
 
 	if (auth) {
 		f5vpn_auth_session_free(auth);
+	}
+
+	if (getsid) {
+		f5vpn_getsid_free(getsid);
 	}
 
 	g_main_loop_unref(cli.main_loop);

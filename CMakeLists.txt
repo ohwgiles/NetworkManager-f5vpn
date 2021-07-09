@@ -1,5 +1,5 @@
 project(NetworkManager-f5vpn)
-cmake_minimum_required(VERSION 2.8.10)
+cmake_minimum_required(VERSION 3.6)
 
 option(WITH_NM_PLUGIN "Compile the NetworkManager plugin" ON)
 option(WITH_CLI_TOOL "Compile the command-line VPN client" OFF)

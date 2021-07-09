@@ -233,7 +233,9 @@ f5vpn_curl_new (void)
 {
 	CURL *curl = curl_easy_init ();
 	curl_easy_setopt (curl, CURLOPT_SSL_VERIFYPEER, 1L);
+#ifdef WITH_DEBUG
 	curl_easy_setopt (curl, CURLOPT_VERBOSE, 1L);
+#endif
 	curl_easy_setopt (curl, CURLOPT_COOKIEFILE, "");
 	curl_easy_setopt (curl, CURLOPT_USERAGENT, USER_AGENT);
 	curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, curl_write_to_gstring);
@@ -315,7 +317,9 @@ on_resource_list_retrieved (CURL *curl, void *user, GError *err)
 				ctx->curl = f5vpn_curl_new ();
 
 				curl_easy_setopt (ctx->curl, CURLOPT_WRITEDATA, ctx->http_response);
+#ifdef WITH_DEBUG
 				curl_easy_setopt (ctx->curl, CURLOPT_VERBOSE, 1L);
+#endif
 
 				char *uri = g_strdup_printf ("https://%s%s?%s=%s", session->host, detail_uri, a->children->content, node->children->content);
 				debug ("request tunnel info at [%s]\n", uri);

@@ -203,14 +203,14 @@ launch_pppd (const char *pppd_ip_spec, int *data_fd, int *plugin_fd, int *log_fd
 	int ret, pty_master, pty_slave, pipe_plugin[2];
 	char fd_as_str[3];
 
-	if(pipe (pipe_plugin) == -1)
+	if (pipe (pipe_plugin) == -1)
 		return -1;
 
 	openpty (&pty_master, &pty_slave, NULL, NULL, NULL);
 
 #ifdef WITH_DEBUG
 	int pipe_log[2];
-	if(pipe (pipe_log) == -1)
+	if (pipe (pipe_log) == -1)
 		return -1;
 #endif
 
@@ -367,10 +367,10 @@ launch_ssl_client (const char *endpoint, int fds[2])
 {
 	int ret, to_child[2], from_child[2];
 
-	if(pipe (to_child) == -1)
+	if (pipe (to_child) == -1)
 		return -1;
 
-	if(pipe (from_child) == -1)
+	if (pipe (from_child) == -1)
 		return -1;
 
 	ret = fork ();
@@ -492,29 +492,29 @@ handle_connection_parameters (CURL *curl, void *user, GError *err)
 
 	xpathCtx = xmlXPathNewContext (doc);
 
-	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/favorite/object/ur_Z)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar *) "string(/favorite/object/ur_Z)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		ur_Z = g_strdup ((const gchar*) xpathObj->stringval);
+		ur_Z = g_strdup ((const gchar *) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
-	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/favorite/object/tunnel_host0)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar *) "string(/favorite/object/tunnel_host0)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		tunnel_host0 = g_strdup ((const gchar*) xpathObj->stringval);
+		tunnel_host0 = g_strdup ((const gchar *) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
-	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/favorite/object/tunnel_port0)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar *) "string(/favorite/object/tunnel_port0)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		tunnel_port0 = g_strdup ((const gchar*) xpathObj->stringval);
+		tunnel_port0 = g_strdup ((const gchar *) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
-	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/favorite/object/DNS0)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar *) "string(/favorite/object/DNS0)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		DNS0 = g_strdup ((const gchar*) xpathObj->stringval);
+		DNS0 = g_strdup ((const gchar *) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
-	xpathObj = xmlXPathEvalExpression ((const xmlChar*) "string(/favorite/object/LAN0)", xpathCtx);
+	xpathObj = xmlXPathEvalExpression ((const xmlChar *) "string(/favorite/object/LAN0)", xpathCtx);
 	if (xpathObj && xpathObj->stringval)
-		LAN0 = g_strdup ((const gchar*) xpathObj->stringval);
+		LAN0 = g_strdup ((const gchar *) xpathObj->stringval);
 	xmlXPathFreeObject (xpathObj);
 
 	debug ("ur_Z[%s] tunnel_host0[%s] tunnel_port0[%s] DNS0[%s] LAN0[%s]\n", ur_Z, tunnel_host0, tunnel_port0, DNS0, LAN0);
@@ -564,9 +564,9 @@ handle_connection_parameters (CURL *curl, void *user, GError *err)
 
 	debug ("request [%s]\n", vpn_http_get);
 
-	if(write (ssl_client_fds[1], vpn_http_get, strlen (vpn_http_get)) == -1) {
+	if (write (ssl_client_fds[1], vpn_http_get, strlen (vpn_http_get)) == -1) {
 		g_free (vpn_http_get);
-		vpn->err = g_error_new (F5VPN_CONNECT_ERROR, F5VPN_CONNECT_ERROR_PARSE_FAILED, "Failed to write initial HTTP request: %s", strerror(errno));
+		vpn->err = g_error_new (F5VPN_CONNECT_ERROR, F5VPN_CONNECT_ERROR_PARSE_FAILED, "Failed to write initial HTTP request: %s", strerror (errno));
 		g_timeout_add (0, callback_to_user, vpn);
 		return;
 	}

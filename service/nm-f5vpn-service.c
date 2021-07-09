@@ -67,7 +67,7 @@ build_dns (const NetworkSettings *settings)
 	g_variant_builder_init (&builder, G_VARIANT_TYPE ("au"));
 
 	for (GSList *p = settings->nameservers; p; p = p->next, size++) {
-		g_variant_builder_add_value (&builder, g_variant_new_uint32 (((struct in_addr*) p->data)->s_addr));
+		g_variant_builder_add_value (&builder, g_variant_new_uint32 (((struct in_addr *) p->data)->s_addr));
 	}
 
 	value = g_variant_builder_end (&builder);
@@ -91,8 +91,8 @@ build_routes (const NetworkSettings *settings)
 	for (GSList *p = settings->lans; p; p = p->next, size++) {
 		GVariantBuilder array;
 		g_variant_builder_init (&array, G_VARIANT_TYPE ("au"));
-		g_variant_builder_add_value (&array, g_variant_new_uint32 (((LanAddr*) p->data)->addr.s_addr));
-		g_variant_builder_add_value (&array, g_variant_new_uint32 (((LanAddr*) p->data)->mask));
+		g_variant_builder_add_value (&array, g_variant_new_uint32 (((LanAddr *) p->data)->addr.s_addr));
+		g_variant_builder_add_value (&array, g_variant_new_uint32 (((LanAddr *) p->data)->mask));
 		g_variant_builder_add_value (&array, g_variant_new_uint32 (settings->remote_ip));
 		g_variant_builder_add_value (&array, g_variant_new_uint32 (0u));
 		g_variant_builder_add_value (&builder, g_variant_builder_end (&array));

@@ -1,11 +1,11 @@
 [VPN Connection]
 name=f5vpn
 service=org.freedesktop.NetworkManager.f5vpn
-program=/usr/lib/nm-f5vpn-service
+program=@CMAKE_INSTALL_FULL_LIBEXECDIR@/nm-f5vpn-service
 supports-multiple-connections=true
 
 [libnm]
 plugin=libnm-vpn-plugin-f5vpn.so
 
 [GNOME]
-auth-dialog=/usr/lib/nm-f5vpn-auth-dialog
+auth-dialog=@CMAKE_INSTALL_FULL_LIBEXECDIR@/nm-f5vpn-auth-dialog

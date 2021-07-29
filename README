@@ -7,4 +7,5 @@ Build and install:
 	cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release
 	make
 	sudo make install
+	sudo update-desktop-database /usr/share/applications
 

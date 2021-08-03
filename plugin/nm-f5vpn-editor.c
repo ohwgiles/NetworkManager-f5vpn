@@ -52,7 +52,7 @@ update_connection (NMVpnEditor *iface, NMConnection *connection, GError **error)
 	svpn = nm_connection_get_setting_vpn (connection);
 	g_assert_nonnull (svpn);
 
-	nm_setting_vpn_add_data_item (svpn, "use-browser-auth", gtk_switch_get_state (GTK_SWITCH (priv->browser_switch)) ? "true" : "false");
+	nm_setting_vpn_add_data_item (svpn, "use-browser-auth", gtk_switch_get_active (GTK_SWITCH (priv->browser_switch)) ? "true" : "false");
 
 	const gchar *hostname = gtk_entry_get_text (GTK_ENTRY (priv->entry_hostname));
 	if (!hostname || !*hostname)
@@ -118,7 +118,7 @@ create_root_widget (F5VpnEditor *editor, NMSettingVpn *svpn)
 	priv->browser_switch = browser_switch;
 
 	g_signal_connect_swapped (entry_hostname, "changed", G_CALLBACK (options_changed), editor);
-	g_signal_connect_swapped (browser_switch, "state-set", G_CALLBACK (options_changed), editor);
+	g_signal_connect_swapped (browser_switch, "notify::active", G_CALLBACK (options_changed), editor);
 
 	gtk_grid_attach (GTK_GRID (grid), host_label, 0, 0, 1, 1);
 	gtk_grid_attach (GTK_GRID (grid), entry_hostname, 1, 0, 1, 1);

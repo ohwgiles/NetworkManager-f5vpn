@@ -119,7 +119,8 @@ browser_auth_begin (F5VpnAuthDialog *auth)
 	if (fork () == 0) {
 		close (1);
 		open ("/dev/null", O_WRONLY);
-		execlp ("xdg-open", "xdg-open", (const char *) g_hash_table_lookup (auth->vpn_opts, "hostname"), NULL);
+		char *url = g_strdup_printf ("https://%s", g_hash_table_lookup (auth->vpn_opts, "hostname"));
+		execlp ("xdg-open", "xdg-open", url, NULL);
 		_exit (1);
 	}
 

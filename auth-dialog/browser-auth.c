@@ -124,7 +124,20 @@ browser_auth_begin (F5VpnAuthDialog *auth)
 		_exit (1);
 	}
 
-	auth->root_dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CANCEL, "%s", "Waiting for browser authentication");
+	auth->root_dialog = gtk_message_dialog_new (NULL,
+	                                            GTK_DIALOG_MODAL,
+	                                            GTK_MESSAGE_ERROR,
+	                                            GTK_BUTTONS_CANCEL,
+	                                            "Launching \"xdg-open https://%s\".\n\n"
+	                                            "Please authenticate with the browser, select a tunnel "
+	                                            "and open the resulting f5-vpn:// scheme URI with "
+	                                            "\"F5Vpn Browser Authentication Helper\".\n\n"
+	                                            "Waiting for browser authentication...",
+	                                            g_hash_table_lookup (auth->vpn_opts, "hostname"));
+	GList *cw = gtk_container_get_children (GTK_CONTAINER (gtk_message_dialog_get_message_area (GTK_MESSAGE_DIALOG (auth->root_dialog))));
+	gtk_label_set_justify (GTK_LABEL (cw->data), GTK_JUSTIFY_CENTER);
+	g_list_free (cw);
+
 	GtkWidget *spinner = gtk_spinner_new ();
 	gtk_spinner_start (GTK_SPINNER (spinner));
 	gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (auth->root_dialog))), spinner);

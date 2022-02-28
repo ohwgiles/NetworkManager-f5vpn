@@ -116,6 +116,7 @@ notify_network_settings (NMVpnServicePlugin *plugin, const NetworkSettings *sett
 	g_variant_builder_init (&vb_conf, G_VARIANT_TYPE_VARDICT);
 	g_variant_builder_add (&vb_conf, "{sv}", NM_VPN_PLUGIN_CONFIG_HAS_IP4, g_variant_new_boolean (TRUE));
 	g_variant_builder_add (&vb_conf, "{sv}", NM_VPN_PLUGIN_CONFIG_TUNDEV, g_variant_new_string (settings->device));
+	g_variant_builder_add (&vb_conf, "{sv}", NM_VPN_PLUGIN_CONFIG_EXT_GATEWAY, g_variant_new_uint32 (settings->remote_ip));
 
 	nm_vpn_service_plugin_set_config (plugin, g_variant_builder_end (&vb_conf));
 

@@ -119,7 +119,7 @@ browser_auth_begin (F5VpnAuthDialog *auth)
 	if (fork () == 0) {
 		close (1);
 		open ("/dev/null", O_WRONLY);
-		char *url = g_strdup_printf ("https://%s", g_hash_table_lookup (auth->vpn_opts, "hostname"));
+		char *url = g_strdup_printf ("https://%s", (const char*) g_hash_table_lookup (auth->vpn_opts, "hostname"));
 		execlp ("xdg-open", "xdg-open", url, NULL);
 		_exit (1);
 	}
@@ -133,7 +133,7 @@ browser_auth_begin (F5VpnAuthDialog *auth)
 	                                            "and open the resulting f5-vpn:// scheme URI with "
 	                                            "\"F5Vpn Browser Authentication Helper\".\n\n"
 	                                            "Waiting for browser authentication...",
-	                                            g_hash_table_lookup (auth->vpn_opts, "hostname"));
+	                                            (const char*) g_hash_table_lookup (auth->vpn_opts, "hostname"));
 	GList *cw = gtk_container_get_children (GTK_CONTAINER (gtk_message_dialog_get_message_area (GTK_MESSAGE_DIALOG (auth->root_dialog))));
 	gtk_label_set_justify (GTK_LABEL (cw->data), GTK_JUSTIFY_CENTER);
 	g_list_free (cw);

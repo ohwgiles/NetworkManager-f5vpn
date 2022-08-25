@@ -1,3 +1,7 @@
+NOTE: Now that OpenConnect added support for F5 SSL VPN, this project is obsolete
+
+---
+
 NetworkManager plugin for accessing F5 SSL VPNs
 
 Install prerequisites:
